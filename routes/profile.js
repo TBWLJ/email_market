@@ -43,17 +43,40 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-// Send PDF via email for a specific profile
+// ✅ Email HTML template function
+const emailTemplate = ({ senderEmail, downloadLink }) => `
+  <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6; padding: 20px;">
+    <h2 style="color: #2e7d32;">You've received a PDF from ${senderEmail}</h2>
+    <p>Hello,</p>
+    <p>You recently requested a document from <strong>${senderEmail}</strong>.</p>
+    <p>You can download the attached PDF by clicking the button below:</p>
+
+    <div style="margin: 30px 0;">
+      <a href="${downloadLink}" 
+         style="display: inline-block; background-color: #2e7d32; color: white; padding: 12px 20px; 
+                text-decoration: none; border-radius: 5px; font-weight: bold;">
+        Download PDF
+      </a>
+    </div>
+
+    <p>If you didn’t request this document, you can ignore this email.</p>
+    <p style="margin-top: 40px;">Thanks,<br/>The Team</p>
+  </div>
+`;
+
+// ✅ Send PDF via email route
+// routes/profile.js
 router.post("/send/:id", async (req, res) => {
   const { email } = req.body;
-  const profileId = req.params.id;
+  const { id } = req.params;
 
-  if (!email) return res.status(400).json({ error: "User email required" });
+  if (!email) return res.status(400).json({ error: "User email is required" });
 
   try {
-    const profile = await Profile.findById(profileId);
+    const profile = await Profile.findById(id);
     if (!profile) return res.status(404).json({ error: "Profile not found" });
 
+    // nodemailer setup
     const transporter = nodemailer.createTransport({
       service: "gmail",
       auth: {
@@ -63,17 +86,47 @@ router.post("/send/:id", async (req, res) => {
     });
 
     const mailOptions = {
-      from: profile.senderEmail,
+      from: `"${profile.senderEmail}" <${profile.senderEmail}>`,
       to: email,
-      subject: "Your PDF Document",
-      html: `<p>Thank you! <a href="${profile.pdfUrl}" target="_blank">Click here to download your PDF</a></p>`
+      subject: "Here is your PDF",
+      html: emailTemplate({ senderEmail: profile.senderEmail, downloadLink: profile.pdfUrl }),
+      attachments: [
+        {
+          filename: "document.pdf",
+          path: profile.pdfUrl,
+        },
+      ],
     };
 
     await transporter.sendMail(mailOptions);
-    res.json({ success: true, message: "Email sent successfully" });
+
+    // update profile with tracking info
+    profile.emailSent = true;
+    profile.sentTo = email;
+    profile.sentAt = new Date();
+    await profile.save();
+
+    res.json({ success: true, message: "Email sent and tracking saved" });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: "Failed to send email" });
   }
 });
+
+router.get("/status/:id", async (req, res) => {
+  try {
+    const profile = await Profile.findById(req.params.id);
+    if (!profile) return res.status(404).json({ error: "Profile not found" });
+
+    res.json({
+      emailSent: profile.emailSent,
+      sentTo: profile.sentTo,
+      sentAt: profile.sentAt,
+    });
+  } catch (err) {
+    res.status(500).json({ error: "Error fetching status" });
+  }
+});
+
 
 module.exports = router;
