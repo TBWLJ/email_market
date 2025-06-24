@@ -12,7 +12,7 @@ app.use(express.json());
 app.use("/api/profile", profileRouter);
 
 mongoose
-  .connect(process.env.MONGO_URI)
+  .connect(process.env.MONGODB_URI)
   .then(() => {
     console.log("MongoDB connected");
     app.listen(process.env.PORT || 5000, () =>
