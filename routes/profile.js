@@ -101,7 +101,7 @@ router.post("/send/:id", async (req, res) => {
     });
 
     const mailOptions = {
-      from: profile.senderEmail,
+      from: `"${profile.senderEmail}" <${process.env.MAIL_USER}>`,
       to: email,
       subject: "Here is your PDF",
       html: emailTemplate({
@@ -116,7 +116,7 @@ router.post("/send/:id", async (req, res) => {
       ],
     };
 
-    await transporter.sendMail(mailOptions);
+    transporter.sendMail(mailOptions);
 
     // update tracking info
     profile.sentHistory = profile.sentHistory || [];
