@@ -33,7 +33,7 @@ router.post('/', async (req, res) => {
             to: email,
             subject: 'Your PDF Document',
             text: 'Please find the attached PDF document.',
-            html: `<p>Please find the attached PDF document, <a href="${lastestPdf.url}"</p>`,
+            html: `<p>Please find the attached PDF document, <a href="${latestPdf.url}"</p>`,
         };
 
         // Send the email
