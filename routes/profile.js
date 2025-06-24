@@ -3,32 +3,46 @@ const express = require("express");
 const multer = require("multer");
 const cloudinary = require("../utils/cloudinary");
 const Profile = require("../models/Profile");
+const upload = require("../middleware/upload");
 
 const router = express.Router();
 const storage = multer.memoryStorage();
-const upload = multer({ storage });
 
 // Create new profile
 router.post("/create", upload.single("pdf"), async (req, res) => {
-  const { senderEmail, message } = req.body;
-  if (!senderEmail || !req.file) return res.status(400).json({ error: "All fields required" });
+  const { senderEmail, message = "" } = req.body;
+
+  if (!senderEmail || !req.file) {
+    return res.status(400).json({ error: "All fields required" });
+  }
 
   try {
     const result = await new Promise((resolve, reject) => {
-      cloudinary.uploader.upload_stream({
-        resource_type: "raw",
-        folder: "pdf"
-      }, (error, result) => {
-        if (error) reject(error);
-        else resolve(result);
-      }).end(req.file.buffer);
+      cloudinary.uploader.upload_stream(
+        {
+          resource_type: "raw",
+          folder: "pdfs", // Folder in your Cloudinary
+          public_id: `${Date.now()}_${req.file.originalname}`,
+        },
+        (error, result) => {
+          if (error) reject(error);
+          else resolve(result);
+        }
+      ).end(req.file.buffer);
     });
 
-    const profile = new Profile({ senderEmail, message, pdfUrl: result.secure_url });
+    const profile = new Profile({
+      senderEmail,
+      message,
+      pdfUrl: result.secure_url,
+    });
+
     await profile.save();
-    res.json({ success: true, id: profile._id });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+
+    res.status(201).json({ success: true, profile });
+  } catch (error) {
+    console.error("Error creating profile:", error);
+    res.status(500).json({ error: "Internal Server Error" });
   }
 });
 
