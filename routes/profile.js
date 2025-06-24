@@ -22,6 +22,7 @@ router.post("/create", upload.single("pdf"), async (req, res) => {
       cloudinary.uploader.upload_stream(
         {
           resource_type: "raw",
+          type: "upload",
           folder: "pdfs", // Folder in your Cloudinary
           public_id: `${Date.now()}_${req.file.originalname}`,
         },
