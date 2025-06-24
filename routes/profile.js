@@ -101,10 +101,13 @@ router.post("/send/:id", async (req, res) => {
     });
 
     const mailOptions = {
-      from: `"${profile.senderEmail}" <${profile.senderEmail}>`,
+      from: profile.senderEmail,
       to: email,
       subject: "Here is your PDF",
-      html: emailTemplate({ senderEmail: profile.senderEmail, downloadLink: profile.pdfUrl }),
+      html: emailTemplate({
+        senderEmail: profile.senderEmail,
+        downloadLink: profile.pdfUrl
+      }),
       attachments: [
         {
           filename: "document.pdf",
@@ -115,10 +118,12 @@ router.post("/send/:id", async (req, res) => {
 
     await transporter.sendMail(mailOptions);
 
-    // update profile with tracking info
-    profile.emailSent = true;
-    profile.sentTo = email;
-    profile.sentAt = new Date();
+    // update tracking info
+    profile.sentHistory = profile.sentHistory || [];
+    profile.sentHistory.push({
+      email,
+      sentAt: new Date()
+    });
     await profile.save();
 
     res.json({ success: true, message: "Email sent and tracking saved" });
@@ -127,6 +132,7 @@ router.post("/send/:id", async (req, res) => {
     res.status(500).json({ error: "Failed to send email" });
   }
 });
+
 
 router.get("/status/:id", async (req, res) => {
   try {

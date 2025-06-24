@@ -1,12 +1,15 @@
 const mongoose = require("mongoose");
 
-const ProfileSchema = new mongoose.Schema({
-  senderEmail: { type: String, required: true },
-  pdfUrl: { type: String, required: true },
-  createdAt: { type: Date, default: Date.now },
-  emailSent: { type: Boolean, default: false },
-  sentTo: { type: String, default: "" },
-  sentAt: { type: Date, default: null }  
+const profileSchema = new mongoose.Schema({
+  senderEmail: String,
+  message: String,
+  pdfUrl: String,
+  sentHistory: [
+    {
+      email: String,
+      sentAt: Date
+    }
+  ]
 });
 
-module.exports = mongoose.model("Profile", ProfileSchema);
+module.exports = mongoose.model("Profile", profileSchema);
