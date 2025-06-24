@@ -12,9 +12,11 @@ app.use(express.json());
 // Routes
 const uploadRoutes = require("./routes/upload");
 const emailRoutes = require("./routes/email");
+const profileRoutes = require("./routes/profile");
 
 app.use("/api/upload", uploadRoutes);
 app.use("/api/email", emailRoutes);
+app.use("/api/profile", profileRoutes);
 
 mongoose.connect(process.env.MONGODB_URI, {
     useNewUrlParser: true,
