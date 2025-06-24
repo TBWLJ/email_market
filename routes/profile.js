@@ -91,18 +91,21 @@ router.post("/send/:id", async (req, res) => {
     const profile = await Profile.findById(id);
     if (!profile) return res.status(404).json({ error: "Profile not found" });
 
-    // Setup transporter
+    if (!profile.senderEmail || !profile.pdfUrl) {
+      return res.status(400).json({ error: "Profile is missing senderEmail or pdfUrl" });
+    }
+
+    // nodemailer setup
     const transporter = nodemailer.createTransport({
       service: "gmail",
       auth: {
-        user: process.env.MAIL_USER,
-        pass: process.env.MAIL_PASS,
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
       },
     });
 
-    // Email options
     const mailOptions = {
-      from: `"${profile.senderEmail}" <${process.env.MAIL_USER}>`,
+      from: `"${profile.senderEmail}" <${process.env.EMAIL_USER}>`,
       to: email,
       subject: "Here is your PDF",
       html: emailTemplate({
@@ -117,22 +120,24 @@ router.post("/send/:id", async (req, res) => {
       ],
     };
 
-    // Send email
+    // ✅ Await transporter.sendMail to catch error
     await transporter.sendMail(mailOptions);
 
-    // Track sent email
-    if (!Array.isArray(profile.sentHistory)) {
-      profile.sentHistory = [];
-    }
-    profile.sentHistory.push({ email, sentAt: new Date() });
+    // Save tracking info
+    profile.sentHistory = profile.sentHistory || [];
+    profile.sentHistory.push({
+      email,
+      sentAt: new Date(),
+    });
     await profile.save();
 
-    return res.json({ success: true, message: "Email sent and tracking saved" });
+    res.json({ success: true, message: "Email sent and tracking saved" });
   } catch (err) {
-    console.error("Failed to send email:", err);
-    return res.status(500).json({ error: "Failed to send email" });
+    console.error("Email sending failed:", err);
+    res.status(500).json({ error: "Failed to send email" });
   }
 });
+
 
 
 
