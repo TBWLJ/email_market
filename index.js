@@ -6,7 +6,14 @@ const cors = require("cors");
 const profileRouter = require("./routes/profile");
 
 const app = express();
-app.use(cors({ origin: true }));
+
+// cors middleware
+app.use(cors({
+  origin: "https://email-market-frontend.vercel.app",
+  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: true
+}));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

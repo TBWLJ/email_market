@@ -59,7 +59,7 @@ router.get("/:id", async (req, res) => {
 });
 
 
-// ✅ Email HTML template function
+// Email HTML template function
 const emailTemplate = ({ senderEmail, downloadLink }) => `
   <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6; padding: 20px;">
     <h2 style="color: #2e7d32;">You've received a PDF from ${senderEmail}</h2>
@@ -80,7 +80,7 @@ const emailTemplate = ({ senderEmail, downloadLink }) => `
   </div>
 `;
 
-// ✅ Send PDF via email route
+// Send PDF via email route
 router.post("/send/:id", async (req, res) => {
   const { email } = req.body;
   const { id } = req.params;
@@ -91,7 +91,7 @@ router.post("/send/:id", async (req, res) => {
     const profile = await Profile.findById(id);
     if (!profile) return res.status(404).json({ error: "Profile not found" });
 
-    // nodemailer setup
+    // Setup transporter
     const transporter = nodemailer.createTransport({
       service: "gmail",
       auth: {
@@ -100,13 +100,14 @@ router.post("/send/:id", async (req, res) => {
       },
     });
 
+    // Email options
     const mailOptions = {
       from: `"${profile.senderEmail}" <${process.env.MAIL_USER}>`,
       to: email,
       subject: "Here is your PDF",
       html: emailTemplate({
         senderEmail: profile.senderEmail,
-        downloadLink: profile.pdfUrl
+        downloadLink: profile.pdfUrl,
       }),
       attachments: [
         {
@@ -116,22 +117,23 @@ router.post("/send/:id", async (req, res) => {
       ],
     };
 
-    transporter.sendMail(mailOptions);
+    // Send email
+    await transporter.sendMail(mailOptions);
 
-    // update tracking info
-    profile.sentHistory = profile.sentHistory || [];
-    profile.sentHistory.push({
-      email,
-      sentAt: new Date()
-    });
+    // Track sent email
+    if (!Array.isArray(profile.sentHistory)) {
+      profile.sentHistory = [];
+    }
+    profile.sentHistory.push({ email, sentAt: new Date() });
     await profile.save();
 
-    res.json({ success: true, message: "Email sent and tracking saved" });
+    return res.json({ success: true, message: "Email sent and tracking saved" });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Failed to send email" });
+    console.error("Failed to send email:", err);
+    return res.status(500).json({ error: "Failed to send email" });
   }
 });
+
 
 
 router.get("/status/:id", async (req, res) => {
