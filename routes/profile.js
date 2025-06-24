@@ -4,6 +4,7 @@ const multer = require("multer");
 const cloudinary = require("../utils/cloudinary");
 const Profile = require("../models/Profile");
 const upload = require("../middleware/upload");
+const nodemailer = require("nodemailer");
 
 const router = express.Router();
 const storage = multer.memoryStorage();
@@ -51,11 +52,12 @@ router.get("/:id", async (req, res) => {
   try {
     const profile = await Profile.findById(req.params.id);
     if (!profile) return res.status(404).json({ error: "Profile not found" });
-    res.json(profile);
+    res.json({ profile }); // wrap in an object
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
+
 
 // ✅ Email HTML template function
 const emailTemplate = ({ senderEmail, downloadLink }) => `
@@ -79,7 +81,6 @@ const emailTemplate = ({ senderEmail, downloadLink }) => `
 `;
 
 // ✅ Send PDF via email route
-// routes/profile.js
 router.post("/send/:id", async (req, res) => {
   const { email } = req.body;
   const { id } = req.params;
