@@ -8,7 +8,7 @@ const profileRouter = require("./routes/profile");
 const app = express();
 app.use(cors({ origin: true }));
 app.use(express.json());
-pp.use(express.urlencoded({ extended: true }));
+app.use(express.urlencoded({ extended: true }));
 
 
 mongoose
