@@ -4,6 +4,7 @@ const profileSchema = new mongoose.Schema({
   senderEmail: String,
   message: String,
   pdfUrl: String,
+  publicId: String,
   sentHistory: [
     {
       email: String,

@@ -21,7 +21,6 @@ router.post("/create", upload.single("pdf"), async (req, res) => {
       cloudinary.uploader.upload_stream(
         {
           resource_type: "raw",
-          type: "authenticated",
           folder: "pdfs",
           public_id: `${Date.now()}_${req.file.originalname}`,
         },
@@ -35,9 +34,9 @@ router.post("/create", upload.single("pdf"), async (req, res) => {
     const profile = new Profile({
       senderEmail,
       message,
-      pdfUrl: result.public_id,
+      pdfUrl: result.secure_url,     // optional full URL if you want it
+      publicId: result.public_id,    // needed for raw URL download
     });
-
 
     await profile.save();
 
@@ -87,26 +86,17 @@ router.post("/send/:id", async (req, res) => {
     const profile = await Profile.findById(id);
     if (!profile) return res.status(404).json({ error: "Profile not found" });
 
-    if (!profile.senderEmail || !profile.pdfUrl) {
-      return res.status(400).json({ error: "Profile is missing senderEmail or pdfUrl" });
+    if (!profile.senderEmail || !profile.publicId) {
+      return res.status(400).json({ error: "Profile is missing senderEmail or publicId" });
     }
 
-    // IMPORTANT: ensure the public_id is URI encoded
-    const publicIdEncoded = encodeURIComponent(profile.pdfUrl);
-
-    // Generate secure signed download URL
-    const signedUrl = cloudinary.utils.private_download_url(
-      publicIdEncoded,
-      "raw",
-      {
-        type: "authenticated",
-        expires_at: Math.floor(Date.now() / 1000) + 300, // 5 minutes from now
-      }
-    );
+    // Construct public raw download link
+    const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+    const rawDownloadUrl = `https://res.cloudinary.com/${cloudName}/raw/upload/${profile.publicId}`;
 
     let pdfResponse;
     try {
-      pdfResponse = await axios.get(signedUrl, {
+      pdfResponse = await axios.get(rawDownloadUrl, {
         responseType: "arraybuffer",
       });
     } catch (axiosErr) {
@@ -129,7 +119,7 @@ router.post("/send/:id", async (req, res) => {
       subject: "Here is your PDF",
       html: emailTemplate({
         senderEmail: profile.senderEmail,
-        downloadLink: signedUrl,
+        downloadLink: rawDownloadUrl,
       }),
       attachments: [
         {
