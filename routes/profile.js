@@ -22,7 +22,7 @@ router.post("/create", upload.single("pdf"), async (req, res) => {
         {
           resource_type: "raw",
           folder: "pdfs",
-          public_id: `${Date.now()}_${req.file.originalname}`,
+          public_id: `${Date.now()}_${req.file.originalname.replace(/\s+/g, "_")}`,
         },
         (error, result) => {
           if (error) {
@@ -81,18 +81,16 @@ router.get("/:id", async (req, res) => {
 const emailTemplate = ({ senderEmail, downloadLink }) => `
   <body style="margin: 0; padding: 0; font-family: 'Inter', Arial, sans-serif; background-color: #f8f9fa;">
     <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
-        <!-- Header -->
         <div style="background: linear-gradient(135deg, #4CAF50 0%, #2E7D32 100%); padding: 32px 40px; text-align: center;">
-            <h1 style="margin: 0; color: white; font-size: 24px; font-weight: 600;">📄 New Document Shared With You</h1>
-            <p style="margin: 8px 0 0; color: rgba(255,255,255,0.9); font-size: 16px; font-weight: 400;">From ${senderEmail}</p>
+          <h1 style="margin: 0; color: white; font-size: 24px; font-weight: 600;">📄 New Document Shared With You</h1>
+          <p style="margin: 8px 0 0; color: rgba(255,255,255,0.9); font-size: 16px; font-weight: 400;">From ${senderEmail}</p>
         </div>
         
-        <!-- Content -->
         <div style="padding: 40px;">
             <p style="margin: 0 0 24px; color: #495057; font-size: 16px; line-height: 1.6;">Hello there,</p>
             
             <div style="background: #f8f9fa; border-left: 4px solid #4CAF50; padding: 16px; margin-bottom: 24px; border-radius: 0 4px 4px 0;">
-                <p style="margin: 0; color: #212529; font-weight: 500;"><strong>${senderEmail}</strong> has shared an important document with you.</p>
+              <p style="margin: 0; color: #212529; font-weight: 500;"><strong>${senderEmail}</strong> has shared an important document with you.</p>
             </div>
             
             <p style="margin: 0 0 24px; color: #495057; font-size: 16px; line-height: 1.6;">Click the button below to view or download the PDF file:</p>
@@ -109,7 +107,6 @@ const emailTemplate = ({ senderEmail, downloadLink }) => `
             </div>
         </div>
         
-        <!-- Footer -->
         <div style="background: #f8f9fa; padding: 24px 40px; text-align: center; border-top: 1px solid #e9ecef;">
             <p style="margin: 0 0 8px; color: #6c757d; font-size: 14px;">Best regards,</p>
             <p style="margin: 0; color: #495057; font-weight: 600;">The Document Sharing Team</p>
