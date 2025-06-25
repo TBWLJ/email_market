@@ -1,10 +1,8 @@
 const express = require("express");
-const multer = require("multer");
 const cloudinary = require("../utils/cloudinary");
 const Profile = require("../models/Profile");
 const upload = require("../middleware/upload");
 const nodemailer = require("nodemailer");
-const axios = require("axios");
 
 const router = express.Router();
 
@@ -20,7 +18,7 @@ router.post("/create", upload.single("pdf"), async (req, res) => {
     const result = await new Promise((resolve, reject) => {
       cloudinary.uploader.upload_stream(
         {
-          resource_type: "raw",
+          resource_type: "auto",
           folder: "pdfs",
           public_id: `${Date.now()}_${req.file.originalname.replace(/\s+/g, "_")}`,
         },
@@ -62,22 +60,7 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-// Email Template
-// const emailTemplate = ({ senderEmail, downloadLink }) => `
-//   <div style="font-family: Arial, sans-serif; color: #333; padding: 20px;">
-//     <h2 style="color: #2e7d32;">You've received a PDF from ${senderEmail}</h2>
-//     <p>Hello,</p>
-//     <p><strong>${senderEmail}</strong> has sent you a document.</p>
-//     <p>You can view or download it by clicking the button below:</p>
-//     <div style="margin: 20px 0;">
-//       <a href="${downloadLink}" target="_blank" style="background-color: #2e7d32; color: white; padding: 12px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;">
-//         Open PDF
-//       </a>
-//     </div>
-//     <p>If you didn’t request this document, you can ignore this email.</p>
-//     <p>Thanks,<br/>The Team</p>
-//   </div>
-// `;
+
 const emailTemplate = ({ senderEmail, downloadLink }) => `
   <body style="margin: 0; padding: 0; font-family: 'Inter', Arial, sans-serif; background-color: #f8f9fa;">
     <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
