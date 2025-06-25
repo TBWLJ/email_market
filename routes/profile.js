@@ -25,8 +25,13 @@ router.post("/create", upload.single("pdf"), async (req, res) => {
           public_id: `${Date.now()}_${req.file.originalname}`,
         },
         (error, result) => {
-          if (error) reject(error);
-          else resolve(result);
+          if (error) {
+            console.error("Cloudinary upload error:", error);
+            reject(error);
+          } else {
+            console.log("Cloudinary upload result:", result);
+            resolve(result);
+          }
         }
       ).end(req.file.buffer);
     });
@@ -34,8 +39,8 @@ router.post("/create", upload.single("pdf"), async (req, res) => {
     const profile = new Profile({
       senderEmail,
       message,
-      pdfUrl: result.secure_url,     // optional full URL if you want it
-      publicId: result.public_id,    // needed for raw URL download
+      pdfUrl: result.secure_url,
+      publicId: result.public_id,
     });
 
     await profile.save();
@@ -66,7 +71,7 @@ const emailTemplate = ({ senderEmail, downloadLink }) => `
     <p>You recently requested a document from <strong>${senderEmail}</strong>.</p>
     <p>You can download the attached PDF by clicking the button below:</p>
     <div style="margin: 30px 0;">
-      <a href="${downloadLink}" style="display: inline-block; background-color: #2e7d32; color: white; padding: 12px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;">
+      <a href="${downloadLink}?fl_attachment" style="display: inline-block; background-color: #2e7d32; color: white; padding: 12px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;">
         Download PDF
       </a>
     </div>
@@ -86,25 +91,28 @@ router.post("/send/:id", async (req, res) => {
     const profile = await Profile.findById(id);
     if (!profile) return res.status(404).json({ error: "Profile not found" });
 
-    if (!profile.senderEmail || !profile.publicId) {
-      return res.status(400).json({ error: "Profile is missing senderEmail or publicId" });
+    if (!profile.senderEmail || !profile.pdfUrl) {
+      return res.status(400).json({ error: "Profile is missing senderEmail or pdfUrl" });
     }
 
-    // Construct public raw download link
-    const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
-    const rawDownloadUrl = `https://res.cloudinary.com/${cloudName}/raw/upload/${profile.publicId}`;
+    const rawDownloadUrl = profile.pdfUrl;
 
     let pdfResponse;
     try {
       pdfResponse = await axios.get(rawDownloadUrl, {
         responseType: "arraybuffer",
       });
+
+      if (!pdfResponse.data || pdfResponse.data.length === 0) {
+        throw new Error("Empty PDF content received.");
+      }
+
+      console.log("PDF downloaded from Cloudinary - size:", pdfResponse.data.length);
     } catch (axiosErr) {
       console.error("Failed to download PDF from Cloudinary:", axiosErr.response?.data || axiosErr.message);
       return res.status(500).json({ error: "Failed to fetch PDF from Cloudinary" });
     }
 
-    // Setup email
     const transporter = nodemailer.createTransport({
       service: "gmail",
       auth: {
@@ -132,7 +140,6 @@ router.post("/send/:id", async (req, res) => {
 
     await transporter.sendMail(mailOptions);
 
-    // Save send history
     profile.sentHistory = profile.sentHistory || [];
     profile.sentHistory.push({
       email,
