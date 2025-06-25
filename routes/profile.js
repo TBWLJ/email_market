@@ -21,7 +21,7 @@ router.post("/create", upload.single("pdf"), async (req, res) => {
       cloudinary.uploader.upload_stream(
         {
           resource_type: "raw",
-          type: "upload",
+          type: "authenticated",
           folder: "pdfs",
           public_id: `${Date.now()}_${req.file.originalname}`,
         },
@@ -35,8 +35,9 @@ router.post("/create", upload.single("pdf"), async (req, res) => {
     const profile = new Profile({
       senderEmail,
       message,
-      pdfUrl: result.secure_url,
+      pdfUrl: result.public_id,
     });
+
 
     await profile.save();
 
@@ -90,10 +91,17 @@ router.post("/send/:id", async (req, res) => {
       return res.status(400).json({ error: "Profile is missing senderEmail or pdfUrl" });
     }
 
-    // Download the PDF as a buffer
-    const pdfResponse = await axios.get(profile.pdfUrl, {
+    const signedUrl = cloudinary.utils.url(profile.pdfUrl, {
+      resource_type: "raw",
+      type: "authenticated",
+      sign_url: true,
+    });
+
+
+    const pdfResponse = await axios.get(signedUrl, {
       responseType: "arraybuffer",
     });
+
 
     // Setup nodemailer transporter
     const transporter = nodemailer.createTransport({
@@ -110,7 +118,7 @@ router.post("/send/:id", async (req, res) => {
       subject: "Here is your PDF",
       html: emailTemplate({
         senderEmail: profile.senderEmail,
-        downloadLink: profile.pdfUrl,
+        downloadLink: signedUrl,
       }),
       attachments: [
         {
