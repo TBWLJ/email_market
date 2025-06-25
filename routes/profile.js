@@ -29,7 +29,6 @@ router.post("/create", upload.single("pdf"), async (req, res) => {
             console.error("Cloudinary upload error:", error);
             reject(error);
           } else {
-            console.log("Cloudinary upload result:", result);
             resolve(result);
           }
         }
@@ -39,7 +38,7 @@ router.post("/create", upload.single("pdf"), async (req, res) => {
     const profile = new Profile({
       senderEmail,
       message,
-      pdfUrl: result.secure_url,
+      pdfUrl: result.secure_url, // Full URL to download
       publicId: result.public_id,
     });
 
@@ -63,20 +62,20 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-// Email HTML Template
+// Email Template
 const emailTemplate = ({ senderEmail, downloadLink }) => `
-  <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6; padding: 20px;">
+  <div style="font-family: Arial, sans-serif; color: #333; padding: 20px;">
     <h2 style="color: #2e7d32;">You've received a PDF from ${senderEmail}</h2>
     <p>Hello,</p>
-    <p>You recently requested a document from <strong>${senderEmail}</strong>.</p>
-    <p>You can download the attached PDF by clicking the button below:</p>
-    <div style="margin: 30px 0;">
-      <a href="${downloadLink}?fl_attachment" style="display: inline-block; background-color: #2e7d32; color: white; padding: 12px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;">
+    <p><strong>${senderEmail}</strong> has sent you a document.</p>
+    <p>You can download it using the button below:</p>
+    <div style="margin: 20px 0;">
+      <a href="${downloadLink}?fl_attachment" style="background-color: #2e7d32; color: white; padding: 12px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;">
         Download PDF
       </a>
     </div>
-    <p>If you didn’t request this document, you can ignore this email.</p>
-    <p style="margin-top: 40px;">Thanks,<br/>The Team</p>
+    <p>If you didn’t request this document, just ignore this email.</p>
+    <p>Thanks,<br/>The Team</p>
   </div>
 `;
 
@@ -92,11 +91,12 @@ router.post("/send/:id", async (req, res) => {
     if (!profile) return res.status(404).json({ error: "Profile not found" });
 
     if (!profile.senderEmail || !profile.pdfUrl) {
-      return res.status(400).json({ error: "Profile is missing senderEmail or pdfUrl" });
+      return res.status(400).json({ error: "Missing senderEmail or pdfUrl" });
     }
 
     const rawDownloadUrl = profile.pdfUrl;
 
+    // Download PDF as buffer
     let pdfResponse;
     try {
       pdfResponse = await axios.get(rawDownloadUrl, {
@@ -104,15 +104,14 @@ router.post("/send/:id", async (req, res) => {
       });
 
       if (!pdfResponse.data || pdfResponse.data.length === 0) {
-        throw new Error("Empty PDF content received.");
+        throw new Error("Empty PDF received");
       }
-
-      console.log("PDF downloaded from Cloudinary - size:", pdfResponse.data.length);
-    } catch (axiosErr) {
-      console.error("Failed to download PDF from Cloudinary:", axiosErr.response?.data || axiosErr.message);
-      return res.status(500).json({ error: "Failed to fetch PDF from Cloudinary" });
+    } catch (err) {
+      console.error("Failed to download PDF from Cloudinary:", err.message);
+      return res.status(500).json({ error: "Could not fetch PDF from Cloudinary" });
     }
 
+    // Setup Nodemailer
     const transporter = nodemailer.createTransport({
       service: "gmail",
       auth: {
@@ -140,6 +139,7 @@ router.post("/send/:id", async (req, res) => {
 
     await transporter.sendMail(mailOptions);
 
+    // Save send history
     profile.sentHistory = profile.sentHistory || [];
     profile.sentHistory.push({
       email,
@@ -147,22 +147,20 @@ router.post("/send/:id", async (req, res) => {
     });
     await profile.save();
 
-    res.json({ success: true, message: "Email sent and tracking saved" });
+    res.json({ success: true, message: "Email sent successfully" });
   } catch (err) {
-    console.error("Email sending failed:", err);
+    console.error("Email send error:", err);
     res.status(500).json({ error: "Failed to send email" });
   }
 });
 
-// Email status route
+// Check email send history
 router.get("/status/:id", async (req, res) => {
   try {
     const profile = await Profile.findById(req.params.id);
     if (!profile) return res.status(404).json({ error: "Profile not found" });
 
-    res.json({
-      sentHistory: profile.sentHistory || [],
-    });
+    res.json({ sentHistory: profile.sentHistory || [] });
   } catch (err) {
     res.status(500).json({ error: "Error fetching status" });
   }
