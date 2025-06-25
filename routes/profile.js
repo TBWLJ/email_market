@@ -91,12 +91,14 @@ router.post("/send/:id", async (req, res) => {
       return res.status(400).json({ error: "Profile is missing senderEmail or pdfUrl" });
     }
 
-    const signedUrl = cloudinary.utils.url(profile.pdfUrl, {
-      resource_type: "raw",
-      type: "authenticated",
-      sign_url: true,
-    });
-
+    const signedUrl = cloudinary.utils.private_download_url(
+      profile.pdfUrl,   // public_id
+      "raw",            // resource_type
+      {
+        type: "authenticated",
+        expires_at: Math.floor(Date.now() / 1000) + 60, // expires in 60 sec
+      }
+    );
 
     const pdfResponse = await axios.get(signedUrl, {
       responseType: "arraybuffer",
