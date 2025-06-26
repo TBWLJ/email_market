@@ -100,6 +100,40 @@ const emailTemplate = ({ senderEmail, downloadLink }) => `
   </body>
 `;
 
+// Get single profile by ID
+router.get("/:id", async (req, res) => {
+  try {
+    const profile = await Profile.findById(req.params.id);
+    if (!profile) {
+      return res.status(404).json({ error: "Profile not found" });
+    }
+    res.json({ profile });
+  } catch (err) {
+    console.error("Error fetching profile:", err);
+    res.status(500).json({ error: "Failed to fetch profile" });
+  }
+});
+
+
+// Get sent emails for a specific profile
+router.get("/:id/sent-emails", async (req, res) => {
+  try {
+    const profile = await Profile.findById(req.params.id)
+      .select("sentHistory");
+    
+    if (!profile) {
+      return res.status(404).json({ error: "Profile not found" });
+    }
+
+    res.json({ 
+      sentEmails: profile.sentHistory || [] 
+    });
+  } catch (err) {
+    console.error("Error fetching sent emails:", err);
+    res.status(500).json({ error: "Failed to fetch sent emails" });
+  }
+});
+
 
 
 // Send PDF via Email (link only, no attachment)
