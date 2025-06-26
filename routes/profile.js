@@ -86,16 +86,6 @@ const emailTemplate = ({ senderEmail, downloadLink }) => `
                 <p style="margin: 0; color: #6c757d; font-size: 14px; line-height: 1.5;">For security reasons, we recommend verifying with the sender before opening attachments from unknown sources.</p>
             </div>
         </div>
-        
-        <div style="background: #f8f9fa; padding: 24px 40px; text-align: center; border-top: 1px solid #e9ecef;">
-            <p style="margin: 0 0 8px; color: #6c757d; font-size: 14px;">Best regards,</p>
-            <p style="margin: 0; color: #495057; font-weight: 600;">The Document Sharing Team</p>
-            <div style="margin-top: 16px;">
-                <a href="#" style="display: inline-block; margin: 0 8px;"><img src="https://cdn-icons-png.flaticon.com/512/2111/2111463.png" alt="Instagram" width="24"></a>
-                <a href="#" style="display: inline-block; margin: 0 8px;"><img src="https://cdn-icons-png.flaticon.com/512/733/733579.png" alt="Twitter" width="24"></a>
-                <a href="#" style="display: inline-block; margin: 0 8px;"><img src="https://cdn-icons-png.flaticon.com/512/2111/2111646.png" alt="LinkedIn" width="24"></a>
-            </div>
-        </div>
     </div>
   </body>
 `;
