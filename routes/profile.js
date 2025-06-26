@@ -101,7 +101,7 @@ const emailTemplate = ({ senderEmail, downloadLink }) => `
 `;
 
 // Get single profile by ID
-router.get("/:id", async (req, res) => {
+router.get("/getone/:id", async (req, res) => {
   try {
     const profile = await Profile.findById(req.params.id);
     if (!profile) {
