@@ -116,14 +116,12 @@ router.post("/send/:id", async (req, res) => {
     const profile = await Profile.findById(id);
     if (!profile) return res.status(404).json({ error: "Profile not found" });
 
-    if (!profile.senderEmail || !profile.publicId) {
-      return res.status(400).json({ error: "Missing senderEmail or publicId" });
-    }
-
-    // ✅ Construct Cloudinary raw download link (opens PDF directly)
-    const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
-    const pdfUrl = `https://res.cloudinary.com/${cloudName}/raw/upload/${profile.publicId}`;
-
+    // ✅ Use the existing pdfUrl OR construct it properly
+    const pdfUrl = profile.pdfUrl; // This should already work
+    
+    // If you need to force download, you could add a flag:
+    // const downloadUrl = pdfUrl + "?flags=attachment";
+    
     // ✅ Nodemailer setup
     const transporter = nodemailer.createTransport({
       service: "gmail",
@@ -139,13 +137,13 @@ router.post("/send/:id", async (req, res) => {
       subject: "Here is your PDF",
       html: emailTemplate({
         senderEmail: profile.senderEmail,
-        downloadLink: pdfUrl, // link opens PDF
+        downloadLink: pdfUrl, // using the correct URL
       }),
     };
 
     await transporter.sendMail(mailOptions);
 
-    // ✅ Save send history
+    // Save send history
     profile.sentHistory = profile.sentHistory || [];
     profile.sentHistory.push({
       email,
@@ -159,7 +157,6 @@ router.post("/send/:id", async (req, res) => {
     res.status(500).json({ error: "Failed to send email" });
   }
 });
-
 // Check email send history
 router.get("/status/:id", async (req, res) => {
   try {
