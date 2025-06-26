@@ -65,22 +65,19 @@ const emailTemplate = ({ senderEmail, downloadLink }) => `
   <body style="margin: 0; padding: 0; font-family: 'Inter', Arial, sans-serif; background-color: #f8f9fa;">
     <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
         <div style="background: linear-gradient(135deg, #4CAF50 0%, #2E7D32 100%); padding: 32px 40px; text-align: center;">
-          <h1 style="margin: 0; color: white; font-size: 24px; font-weight: 600;">📄 New Document Shared With You</h1>
+          <h1 style="margin: 0; color: white; font-size: 24px; font-weight: 600;">📄 How to claim your free gift</h1>
           <p style="margin: 8px 0 0; color: rgba(255,255,255,0.9); font-size: 16px; font-weight: 400;">From ${senderEmail}</p>
         </div>
         
         <div style="padding: 40px;">
             <p style="margin: 0 0 24px; color: #495057; font-size: 16px; line-height: 1.6;">Hello there,</p>
+
             
-            <div style="background: #f8f9fa; border-left: 4px solid #4CAF50; padding: 16px; margin-bottom: 24px; border-radius: 0 4px 4px 0;">
-              <p style="margin: 0; color: #212529; font-weight: 500;"><strong>${senderEmail}</strong> has shared an important document with you.</p>
-            </div>
-            
-            <p style="margin: 0 0 24px; color: #495057; font-size: 16px; line-height: 1.6;">Click the button below to view or download the PDF file:</p>
+            <p style="margin: 0 0 24px; color: #495057; font-size: 16px; line-height: 1.6;">Click the button below to download your free gift:</p>
             
             <div style="text-align: center; margin: 32px 0;">
                 <a href="${downloadLink}" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #4CAF50 0%, #2E7D32 100%); color: white; padding: 16px 32px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 12px rgba(46, 125, 50, 0.2); transition: transform 0.2s, box-shadow 0.2s;">
-                    🔍 View Document
+                    🔍 Claim your gift
                 </a>
             </div>
             
@@ -157,15 +154,33 @@ router.post("/send/:id", async (req, res) => {
     res.status(500).json({ error: "Failed to send email" });
   }
 });
-// Check email send history
-router.get("/status/:id", async (req, res) => {
+
+// Get all profiles
+router.get("/", async (req, res) => {
   try {
-    const profile = await Profile.findById(req.params.id);
+    const profiles = await Profile.find().sort({ createdAt: -1 });
+    res.json({ profiles });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch profiles" });
+  }
+});
+
+
+router.get("/sent-emails/:id", async (req, res) => {
+  const { id } = req.params;
+  try {
+    const profile = await Profile.findById(id);
     if (!profile) return res.status(404).json({ error: "Profile not found" });
 
-    res.json({ sentHistory: profile.sentHistory || [] });
+    const sentEmails = (profile.sentHistory || []).map(entry => ({
+      email: entry.email,
+      sentAt: entry.sentAt,
+    }));
+
+    res.json({ sentEmails });
   } catch (err) {
-    res.status(500).json({ error: "Error fetching status" });
+    console.error("Error fetching sent emails:", err);
+    res.status(500).json({ error: "Failed to fetch sent emails" });
   }
 });
 
